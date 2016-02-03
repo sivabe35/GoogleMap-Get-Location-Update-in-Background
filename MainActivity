@@ -1,0 +1,20 @@
+...................
+...............
+
+ // Start the service
+    public void startService() {
+        startService(new Intent(this, LocationUpdater_AfterLogin.class));
+    }
+    
+    
+    ..................
+    ..................
+    
+     @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+        startService();
+}
+...........
+..........

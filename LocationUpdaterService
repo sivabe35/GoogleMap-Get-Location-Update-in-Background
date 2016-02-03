@@ -1,0 +1,150 @@
+package cabs.com.kkcabs.iotroztech.kk.kkcabs;
+
+import android.Manifest;
+import android.app.Service;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.location.Location;
+import android.os.Bundle;
+import android.os.IBinder;
+import android.support.v4.app.ActivityCompat;
+import android.util.Log;
+import android.widget.Toast;
+
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.PendingResult;
+import com.google.android.gms.common.api.Status;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
+
+import java.text.DateFormat;
+import java.util.Date;
+
+/**
+ * Created by ${SivaShankar} from ${IOTROZTECH}.
+ */
+public class LocationUpdater_AfterLogin extends Service implements GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.OnConnectionFailedListener, LocationListener {
+
+
+    public static final long FASTEST_INTERVAL = 1000 * 5;
+    private LocationRequest mLocationRequest;
+    private GoogleApiClient mGoogleApiClient;
+    private static final long INTERVAL = 2000 * 30;
+    private Location mCurrentLocation;
+    String mLastUpdateTime;
+
+
+    protected void createLocationRequest() {
+        Log.d("locationReq", "location");
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(INTERVAL);
+        mLocationRequest.setFastestInterval(FASTEST_INTERVAL);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        Log.d("create", "location");
+        Toast.makeText(this, "Service was Created", Toast.LENGTH_LONG).show();
+        createLocationRequest();
+
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addApiIfAvailable(LocationServices.API)
+                .addConnectionCallbacks(this)
+                .addOnConnectionFailedListener(this)
+                .build();
+
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        mGoogleApiClient.connect();
+        Toast.makeText(this, "OnStartCommand..", Toast.LENGTH_LONG).show();
+        Log.d("UPDATE", "start_connected");
+//        return START_STICKY;
+        return super.onStartCommand(intent, flags, startId);
+
+    }
+
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
+
+    @Override
+    public void onConnected(Bundle bundle) {
+        Log.d("onConn", "connected");
+        Toast.makeText(this, "onConnected..", Toast.LENGTH_LONG).show();
+        startLocationUpdates();
+    }
+
+    protected void startLocationUpdates() {
+        Log.d("onConn", "Location update started");
+
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+            return;
+        }
+        PendingResult<Status> pendingResult = LocationServices.FusedLocationApi.requestLocationUpdates(
+                mGoogleApiClient, mLocationRequest, this);
+        Log.d("onConn", "Location update started");
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+        Log.d("failed", "Connection failed: " + connectionResult.toString());
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        Toast.makeText(this, "onLocationChaged : \n" + location.getLatitude() + "\n" + location.getLongitude(), Toast.LENGTH_LONG).show();
+
+        Log.d("onLocationChanged", "Firing onLocationChanged..");
+        mCurrentLocation = location;
+        mLastUpdateTime = DateFormat.getTimeInstance().format(new Date());
+        updateUI();
+
+    }
+
+    private void updateUI() {
+
+        Log.d("updateUI", "UI update");
+        if (null != mCurrentLocation) {
+            String lat = String.valueOf(mCurrentLocation.getLatitude());
+            String lng = String.valueOf(mCurrentLocation.getLongitude());
+            String sv = "At Time: " + mLastUpdateTime + "\n" +
+                    "Latitude: " + lat + "\n" +
+                    "Longitude: " + lng + "\n" +
+                    "Accuracy: " + mCurrentLocation.getAccuracy() + "\n" +
+                    "Provider: " + mCurrentLocation.getProvider();
+            Toast.makeText(this, "UpdateUI" + sv, Toast.LENGTH_LONG).show();
+
+        } else {
+            Log.d("updateUI", "location is null ...............");
+        }
+
+    }
+
+    @Override
+    public void onDestroy() {
+        Toast.makeText(this, "Service Destroyed", Toast.LENGTH_LONG).show();
+    }
+
+
+}
